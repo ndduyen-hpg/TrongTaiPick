@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PB Referee">
+  <title>Ứng Dụng Ghi Điểm Trọng Tài Pickleball</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏓</text></svg>">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #151d2e;
+      --card-inner: #0f1623;
+      --accent-a: #38bdf8;
+      --accent-b: #f43f5e;
+      --serve-gold: #facc15;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #27354a;
+      --green-swap: #16a34a;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow-x: hidden;
+    }
+
+    /* THANH TIÊU ĐỀ TRÊN CÙNG */
+    .app-main-header {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      padding: 12px 14px;
+      text-align: center;
+      border-bottom: 2px solid #38bdf8;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+    .app-main-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: rgb(255, 255, 0);
+      text-transform: uppercase;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    /* THANH NÚT ĐỔI SÂN NHANH */
+    .top-action-bar {
+      padding: 8px 10px 4px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .quick-switch-btn {
+      width: 100%;
+      background: #16a34a;
+      color: #ffffff;
+      border: 1px solid #22c55e;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .quick-switch-btn:active {
+      transform: scale(0.97);
+      background: #15803d;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+    }
+
+    /* Bảng hiển thị tiếng hô chuẩn trọng tài */
+    .callout-banner {
+      margin: 4px 10px;
+      padding: 8px 12px;
+      background: #020617;
+      border: 1.5px solid #1e293b;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .callout-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .callout-score {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--serve-gold);
+      letter-spacing: 3px;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 16px rgba(250, 204, 21, 0.4);
+    }
+    .callout-sub {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* BỐ TRÍ 2 CỘT SONG SONG */
+    .court-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 6px 10px;
+      flex: 1;
+    }
+
+    .team-col {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 2px solid var(--border-color);
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .col-a { border-color: rgba(56, 189, 248, 0.35); }
+    .col-b { border-color: rgba(244, 63, 94, 0.35); }
+
+    .team-col.serving {
+      border-color: var(--serve-gold);
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.25);
+      background: linear-gradient(180deg, #1b2438 0%, var(--card-bg) 100%);
+    }
+
+    .team-badge-header {
+      text-align: center;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed #334155;
+    }
+    .team-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .col-a .team-tag { color: var(--accent-a); }
+    .col-b .team-tag { color: var(--accent-b); }
+
+    .serving-pill {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #334155;
+      color: #94a3b8;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+    .team-col.serving .serving-pill {
+      background: var(--serve-gold);
+      color: #000;
+    }
+
+    /* KHU VỰC HIỂN THỊ TỶ SỐ (CHỈ XEM, KHÔNG BỊ BẬT BÀN PHÍM) */
+    .score-box {
+      background: var(--card-inner);
+      border-radius: 10px;
+      padding: 8px 4px 6px;
+      text-align: center;
+      border: 1px solid #1e293b;
+    }
+    .score-display-text {
+      width: 100%;
+      text-align: center;
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      padding: 4px 0 6px;
+      cursor: default;
+      pointer-events: none;
+    }
+    .col-a .score-display-text { color: var(--accent-a); }
+    .col-b .score-display-text { color: var(--accent-b); }
+
+    .score-btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .btn-score {
+      height: 44px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1.4rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-score:active { transform: scale(0.95); opacity: 0.85; }
+    .btn-minus {
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .col-a .btn-plus {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(2, 132, 199, 0.4);
+    }
+    .col-b .btn-plus {
+      background: #e11d48;
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(225, 29, 72, 0.4);
+    }
+
+    /* Thông tin 2 đấu thủ trong cặp */
+    .players-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .player-card {
+      background: var(--card-inner);
+      border: 1px solid #233147;
+      border-radius: 8px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+    }
+    .player-card.active-server {
+      border-color: var(--serve-gold);
+      background: rgba(250, 204, 21, 0.08);
+    }
+    .player-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #334155;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 2px 0 4px;
+      outline: none;
+    }
+    .player-input::placeholder { color: #64748b; font-weight: normal; }
+    .player-input:focus { border-bottom-color: #38bdf8; }
+
+    .serve-indicator-btn {
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .player-card.active-server .serve-indicator-btn {
+      background: var(--serve-gold);
+      color: #000;
+      border-color: var(--serve-gold);
+    }
+
+    /* Bộ chọn Lượt giao (Bóng 1 / Bóng 2) */
+    .serve-selector-bar {
+      margin: 2px 10px 6px;
+      padding: 8px 10px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .serve-sel-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+    .serve-options {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+    }
+    .btn-stage {
+      flex: 1;
+      padding: 7px 4px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-stage.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+
+    /* Bảng nút thao tác trọng tài */
+    .ref-actions {
+      padding: 4px 10px 10px;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 8px;
+    }
+    .action-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 4px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+    .action-btn:active { opacity: 0.8; }
+    .btn-sideout {
+      background: #d97706;
+      box-shadow: 0 3px 8px rgba(217, 119, 6, 0.3);
+    }
+    .btn-swap {
+      background: #475569;
+    }
+    .btn-reset {
+      background: #b91c1c;
+    }
+
+    /* DÒNG COPYRIGHT Ở CUỐI TRANG */
+    .app-footer {
+      padding: 8px 10px 14px;
+      text-align: center;
+      border-top: 1px solid var(--border-color);
+      background: #0b111e;
+    }
+    .copyright-text {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .copyright-text strong {
+      color: #6b9fb9;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- THANH TIÊU ĐỀ TRÊN CÙNG -->
+  <header class="app-main-header">
+    <div class="app-main-title">ỨNG DỤNG TRỌNG TÀI PICKLEBALL</div>
+  </header>
+
+  <!-- NÚT ĐỔI VỊ TRÍ SÂN TO RÕ MÀU XANH LỤC -->
+  <div class="top-action-bar">
+    <button class="quick-switch-btn" onclick="swapSides()">
+      🔄 ĐỔI VỊ TRÍ SÂN
+    </button>
+  </div>
+
+  <!-- Tiếng hô trọng tài -->
+  <div class="callout-banner">
+    <div class="callout-label">Tiếng hô trọng tài (Giao - Nhận - Bóng số)</div>
+    <div id="calloutDisplay" class="callout-score">0 - 0 - 2</div>
+    <div id="calloutDesc" class="callout-sub">Cặp 1 đang giao bóng (Lượt 2)</div>
+  </div>
+
+  <!-- BỐ TRÍ 2 CỘT: CẶP 1 BÊN TRÁI, CẶP 2 BÊN PHẢI -->
+  <div class="court-grid">
+    
+    <!-- CỘT TRÁI: CẶP 1 -->
+    <div class="team-col col-a serving" id="colA">
+      <div class="team-badge-header">
+        <div class="team-tag" id="labelTeamA">CẶP 1 (TRÁI)</div>
+        <div class="serving-pill" id="pillA">ĐANG GIAO BÓNG</div>
+      </div>
+
+      <!-- Tỷ số Cặp 1: Chỉ hiển thị số to, không cho nhập bàn phím -->
+      <div class="score-box">
+        <div id="scoreA" class="score-display-text">0</div>
+        <div class="score-btn-group">
+          <button class="btn-score btn-minus" onclick="changeScore('A', -1)">−</button>
+          <button class="btn-score btn-plus" onclick="changeScore('A', 1)">+1</button>
+        </div>
+      </div>
+
+      <!-- 2 Đấu thủ Cặp 1 -->
+      <div class="players-list">
+        <div class="player-card active-server" id="card_A1">
+          <input type="text" id="name_A1" class="player-input" value="Đấu thủ 1A" placeholder="Tên VĐV 1">
+          <button class="serve-indicator-btn" onclick="selectServer('A', 1)">
+            <span id="serveText_A1">🎾 Đang phát</span>
+          </button>
+        </div>
+
+        <div class="player-card" id="card_A2">
+          <input type="text" id="name_A2" class="player-input" value="Đấu thủ 2A" placeholder="Tên VĐV 2">
+          <button class="serve-indicator-btn" onclick="selectServer('A', 2)">
+            <span id="serveText_A2">Chọn phát</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CỘT PHẢI: CẶP 2 -->
+    <div class="team-col col-b" id="colB">
+      <div class="team-badge-header">
+        <div class="team-tag" id="labelTeamB">CẶP 2 (PHẢI)</div>
+        <div class="serving-pill" id="pillB">ĐỠ BÓNG</div>
+      </div>
+
+      <!-- Tỷ số Cặp 2: Chỉ hiển thị số to, không cho nhập bàn phím -->
+      <div class="score-box">
+        <div id="scoreB" class="score-display-text">0</div>
+        <div class="score-btn-group">
+          <button class="btn-score btn-minus" onclick="changeScore('B', -1)">−</button>
+          <button class="btn-score btn-plus" onclick="changeScore('B', 1)">+1</button>
+        </div>
+      </div>
+
+      <!-- 2 Đấu thủ Cặp 2 -->
+      <div class="players-list">
+        <div class="player-card" id="card_B1">
+          <input type="text" id="name_B1" class="player-input" value="Đấu thủ 1B" placeholder="Tên VĐV 1">
+          <button class="serve-indicator-btn" onclick="selectServer('B', 1)">
+            <span id="serveText_B1">Chọn phát</span>
+          </button>
+        </div>
+
+        <div class="player-card" id="card_B2">
+          <input type="text" id="name_B2" class="player-input" value="Đấu thủ 2B" placeholder="Tên VĐV 2">
+          <button class="serve-indicator-btn" onclick="selectServer('B', 2)">
+            <span id="serveText_B2">Chọn phát</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Chọn Bóng 1 / Bóng 2 -->
+  <div class="serve-selector-bar">
+    <div class="serve-sel-label">LƯỢT GIAO:</div>
+    <div class="serve-options">
+      <button class="btn-stage" id="stageBtn1" onclick="setServeStage(1)">Bóng 1 (Server 1)</button>
+      <button class="btn-stage active" id="stageBtn2" onclick="setServeStage(2)">Bóng 2 (Server 2)</button>
+    </div>
+  </div>
+
+  <!-- Nút điều khiển nhanh cho trọng tài -->
+  <div class="ref-actions">
+    <button class="action-btn btn-sideout" onclick="handleSideOut()">
+      <span>ĐỔI LƯỢT / SIDEOUT</span>
+      <span style="font-size: 0.68rem; font-weight:normal; opacity:0.85;">Chuyển lượt / Đổi cặp</span>
+    </button>
+    <button class="action-btn btn-swap" onclick="switchServingTeamOnly()">
+      <span>ĐỔI BÊN GIAO</span>
+      <span style="font-size: 0.68rem; font-weight:normal; opacity:0.85;">Cặp 1 ⇄ Cặp 2</span>
+    </button>
+    <button class="action-btn btn-reset" onclick="resetMatch()">
+      <span>LÀM MỚI</span>
+      <span style="font-size: 0.68rem; font-weight:normal; opacity:0.85;">Về 0-0-2</span>
+    </button>
+  </div>
+
+  <!-- DÒNG BẢN QUYỀN Ở CUỐI TRANG -->
+  <footer class="app-footer" style="text-align: right;"> 
+    <div class="copyright-text">Copyright® by: <strong>Nguyễn Đức Duyến</strong></div>
+  </footer>
+
+  <script>
+    let match = {
+      scoreA: 0,
+      scoreB: 0,
+      servingTeam: 'A', // 'A' (Cặp 1) hoặc 'B' (Cặp 2)
+      serverPlayer: 1,  // 1 hoặc 2
+      serveStage: 2     // Đầu trận đôi Pickleball luôn bắt đầu từ Bóng 2 (0-0-2)
+    };
+
+    function updateUI() {
+      // Cập nhật điểm số dạng text thuần túy
+      document.getElementById('scoreA').textContent = match.scoreA;
+      document.getElementById('scoreB').textContent = match.scoreB;
+
+      const isA = match.servingTeam === 'A';
+      document.getElementById('colA').classList.toggle('serving', isA);
+      document.getElementById('colB').classList.toggle('serving', !isA);
+      document.getElementById('pillA').textContent = isA ? 'ĐANG GIAO BÓNG' : 'ĐỠ BÓNG';
+      document.getElementById('pillB').textContent = !isA ? 'ĐANG GIAO BÓNG' : 'ĐỠ BÓNG';
+
+      // Cập nhật thẻ đấu thủ phát bóng
+      ['A1', 'A2', 'B1', 'B2'].forEach(id => {
+        const team = id[0];
+        const pNum = parseInt(id[1]);
+        const card = document.getElementById('card_' + id);
+        const text = document.getElementById('serveText_' + id);
+        const isCurrentServer = (match.servingTeam === team && match.serverPlayer === pNum);
+
+        card.classList.toggle('active-server', isCurrentServer);
+        if (isCurrentServer) {
+          text.textContent = `🎾 Bóng ${match.serveStage}`;
+        } else {
+          text.textContent = 'Chọn phát';
+        }
+      });
+
+      // Lượt phát (Bóng 1 hoặc 2)
+      document.getElementById('stageBtn1').classList.toggle('active', match.serveStage === 1);
+      document.getElementById('stageBtn2').classList.toggle('active', match.serveStage === 2);
+
+      // Tiếng hô trọng tài: [Điểm giao] - [Điểm nhận] - [Lượt phát]
+      const serveScore = isA ? match.scoreA : match.scoreB;
+      const receiveScore = isA ? match.scoreB : match.scoreA;
+      document.getElementById('calloutDisplay').textContent = `${serveScore} - ${receiveScore} - ${match.serveStage}`;
+      
+      const serverTeamName = isA ? 'Cặp 1 (Trái)' : 'Cặp 2 (Phải)';
+      const serverPlayerName = isA 
+        ? (match.serverPlayer === 1 ? document.getElementById('name_A1').value : document.getElementById('name_A2').value)
+        : (match.serverPlayer === 1 ? document.getElementById('name_B1').value : document.getElementById('name_B2').value);
+
+      document.getElementById('calloutDesc').textContent = `${serverTeamName} • ${serverPlayerName || 'VĐV'} phát bóng`;
+    }
+
+    function changeScore(team, delta) {
+      if (team === 'A') {
+        match.scoreA = Math.max(0, match.scoreA + delta);
+      } else {
+        match.scoreB = Math.max(0, match.scoreB + delta);
+      }
+      updateUI();
+    }
+
+    function selectServer(team, playerNum) {
+      match.servingTeam = team;
+      match.serverPlayer = playerNum;
+      updateUI();
+    }
+
+    function setServeStage(stage) {
+      match.serveStage = stage;
+      updateUI();
+    }
+
+    function switchServingTeamOnly() {
+      match.servingTeam = match.servingTeam === 'A' ? 'B' : 'A';
+      updateUI();
+    }
+
+    // Logic luật Pickleball đôi
+    function handleSideOut() {
+      if (match.serveStage === 1) {
+        match.serveStage = 2;
+        match.serverPlayer = (match.serverPlayer === 1) ? 2 : 1;
+      } else {
+        match.servingTeam = (match.servingTeam === 'A') ? 'B' : 'A';
+        match.serveStage = 1;
+        match.serverPlayer = 1;
+      }
+      updateUI();
+    }
+
+    function swapSides() {
+      // Đổi dữ liệu và tên giữa 2 cột khi 2 cặp đổi sân thi đấu
+      const tempScore = match.scoreA;
+      match.scoreA = match.scoreB;
+      match.scoreB = tempScore;
+
+      const p1A = document.getElementById('name_A1').value;
+      const p2A = document.getElementById('name_A2').value;
+      document.getElementById('name_A1').value = document.getElementById('name_B1').value;
+      document.getElementById('name_A2').value = document.getElementById('name_B2').value;
+      document.getElementById('name_B1').value = p1A;
+      document.getElementById('name_B2').value = p2A;
+
+      match.servingTeam = (match.servingTeam === 'A') ? 'B' : 'A';
+      updateUI();
+    }
+
+    function resetMatch() {
+      if (confirm("Đặt lại trận đấu về đầu ván (0 - 0 - 2)?")) {
+        match.scoreA = 0;
+        match.scoreB = 0;
+        match.servingTeam = 'A';
+        match.serverPlayer = 1;
+        match.serveStage = 2;
+        updateUI();
+      }
+    }
+
+    // Lắng nghe đổi tên để cập nhật tiếng hô
+    ['name_A1', 'name_A2', 'name_B1', 'name_B2'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateUI);
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
