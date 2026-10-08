@@ -1,0 +1,46 @@
+name: Build TrongTai IPA
+
+on:
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào
+
+jobs:
+  build:
+    runs-on: macos-14 # Sử dụng máy chủ Mac silicon miễn phí của GitHub
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Compile Swift App
+        run: |
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          
+          # Biên dịch file Swift thành file thực thi nhị phân cho chip ARM64 (iPhone)
+          swiftc -target arm64-apple-ios15.0 \
+                 -sdk "$SDK_PATH" \
+                 -framework UIKit \
+                 -framework WebKit \
+                 main.swift \
+                 -o TrongTai
+
+      - name: Package into IPA
+        run: |
+          # Tạo cấu trúc Payload chuẩn của iOS
+          mkdir -p Payload/TrongTai.app
+          
+          # Đưa file nhị phân, cấu hình và file HTML vào app bundle
+          cp TrongTai Payload/TrongTai.app/
+          cp Info.plist Payload/TrongTai.app/
+          cp web/index.html Payload/TrongTai.app/
+          
+          # Ký mã giả lập (Ad-hoc signature) để chuẩn bị cho Sideloadly/TrollStore
+          codesign --force --deep --sign - Payload/TrongTai.app
+          
+          # Nén thư mục Payload thành file TrongTai.ipa
+          zip -r TrongTai.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrongTai-IPA
+          path: TrongTai.ipa
